@@ -120,7 +120,11 @@ async function fetchWeather() {
   }
 }
 
+let lastStravaFetchAt = 0;
+const STRAVA_REFRESH_MIN_INTERVAL_MS = 60 * 1000;
+
 async function loadStravaSnapshot() {
+  lastStravaFetchAt = Date.now();
   try {
     const statusResp = await fetch("/api/strava/status", { cache: "no-store" });
     if (statusResp.ok) {
@@ -589,6 +593,19 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   });
 }
+
+function refreshStravaOnReopen() {
+  if (Date.now() - lastStravaFetchAt < STRAVA_REFRESH_MIN_INTERVAL_MS) return;
+  loadStravaSnapshot();
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") refreshStravaOnReopen();
+});
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) refreshStravaOnReopen();
+});
+window.addEventListener("focus", refreshStravaOnReopen);
 
 render();
 initDataSync();
