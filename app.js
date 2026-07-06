@@ -39,6 +39,14 @@ const SPORT_MAP = {
   Workout: { label: "KRAFT", color: "#4cd787" },
 };
 
+const ICONS = {
+  bolt:     `<svg width="11" height="13" viewBox="0 0 11 13" fill="none" aria-hidden="true"><path d="M6.5 1L1.5 7.5h4L4 12.5 10 5.5H6L6.5 1z" fill="currentColor"/></svg>`,
+  clock:    `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.2" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 4V6.5l1.8 1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  moon:     `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M6.5 1.5C4 1.5 1.5 4 1.5 6.5S4 11.5 6.5 11.5c2.2 0 4-1.4 4.7-3.3-2.5.7-5.2-.9-5.6-3.7A5 5 0 0 1 6.5 1.5z" fill="currentColor"/></svg>`,
+  sun:      `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="2.1" fill="currentColor"/><path d="M6 1v1.1M6 9.9V11M1 6h1.1M9.9 6H11M2.6 2.6l.8.8M8.6 8.6l.8.8M9.4 2.6l-.8.8M3.4 8.6l-.8.8" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>`,
+  cloud:    `<svg width="13" height="10" viewBox="0 0 13 10" fill="none" aria-hidden="true"><path d="M3.5 8.5a2.5 2.5 0 0 1 0-5A3.1 3.1 0 0 1 9.5 4a2.2 2.2 0 0 1-.5 4.5H3.5z" fill="currentColor"/></svg>`,
+};
+
 const root = document.getElementById("root");
 const todayKey = new Date().toISOString().slice(0, 10);
 let recovery = null;
@@ -333,7 +341,7 @@ function renderRecoveryCard() {
   const rs = recoveryScore(recovery);
   if (!rs) {
     return `<div class="card">
-      <div class="card-title"><span>Regeneration</span><button class="wbtn" id="recEdit">Werte eintragen</button></div>
+      <div class="card-title"><span class="card-title-icon">${ICONS.moon}Regeneration</span><button class="wbtn" id="recEdit">Werte eintragen</button></div>
       <div class="placeholder"><b>Noch keine Werte für heute.</b> Trag Schlaf, Ruhepuls, HRV und Gefühl ein. Der Coach speichert die Werte lokal auf diesem Gerät und lernt deine Baseline über mehrere Tage.</div>
     </div>`;
   }
@@ -343,7 +351,7 @@ function renderRecoveryCard() {
   if (Number.isFinite(recovery.hrv)) chips.push(`<div class="rec-chip"><span>HRV</span><b>${recovery.hrv} ms</b></div>`);
   if (Number.isFinite(recovery.feel)) chips.push(`<div class="rec-chip"><span>Gefühl</span><b>${["", "schlecht", "mäßig", "ok", "gut", "top"][recovery.feel]}</b></div>`);
   return `<div class="card">
-    <div class="card-title"><span>Regeneration</span><button class="wbtn" id="recEdit">Bearbeiten</button></div>
+    <div class="card-title"><span class="card-title-icon">${ICONS.moon}Regeneration</span><button class="wbtn" id="recEdit">Bearbeiten</button></div>
     <div class="rec-head" id="recScoreClick">
       <div class="rec-ring" style="--p:${rs.score};--col:${rs.status.c};"><div class="rec-ring-inner"><div class="rec-score">${rs.score}</div><div class="rec-of">/100</div></div></div>
       <div style="flex:1;"><div class="rec-status" style="color:${rs.status.c};">${rs.status.t}</div><div class="rec-sub">Erholungs-Score · tippen für Details</div><div class="rec-chips">${chips.join("")}</div></div>
@@ -378,10 +386,10 @@ function render() {
         <div class="gauge metric" data-metric="week"><div class="field-label">Woche <span class="info-i">i</span></div><div class="v blue">${training.weekKm}<span style="font-size:11px;color:var(--muted);"> km</span></div></div>
       </div>
     </div>
-    <section class="section"><div class="card call-card"><div class="call-badge ${rec.badge}">${rec.badgeText}</div><div style="flex:1;"><div class="call-text">${rec.text}</div><div class="call-meta">${rec.meta}</div><button class="weather-chip ${weather._fallback ? 'manual' : 'live'}" id="weatherInfo">${weather._fallback ? 'Wetter geschätzt' : 'Wetter live · Wewer'}</button></div></div></section>
+    <section class="section"><div class="card call-card"><div class="call-badge ${rec.badge}">${rec.badgeText}</div><div style="flex:1;"><div class="call-text">${rec.text}</div><div class="call-meta">${rec.meta}</div><button class="weather-chip ${weather._fallback ? 'manual' : 'live'}" id="weatherInfo">${weather._fallback ? ICONS.cloud : ICONS.sun}${weather._fallback ? 'Wetter geschätzt' : 'Wetter live · Wewer'}</button></div></div></section>
     <section class="section">${renderRecoveryCard()}</section>
-    <section class="section"><div class="card"><div class="card-title">Letzte Aktivitäten</div>${training.activities.map(renderActivity).join("")}</div></section>
-    <section class="section"><div class="card"><div class="card-title">Recovery-Historie</div>${renderHistory()}</div></section>
+    <section class="section"><div class="card"><div class="card-title"><span class="card-title-icon">${ICONS.bolt}Letzte Aktivitäten</span></div>${training.activities.map(renderActivity).join("")}</div></section>
+    <section class="section"><div class="card"><div class="card-title"><span class="card-title-icon">${ICONS.clock}Recovery-Historie</span></div>${renderHistory()}</div></section>
   `;
   bindEvents();
 }
