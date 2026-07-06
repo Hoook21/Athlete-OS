@@ -1,16 +1,6 @@
 # Fitness Coach
 
-Dieses Repository war frueher der Athlete-OS-Prototyp. Der aktuelle Projektstand ist jetzt bewusst auf eine App fokussiert: den lokalen Fitness Coach fuer Hauke.
-
-Ziel: ein privater, iPhone-tauglicher Trainings- und Recovery-Coach mit lokalen Daten, serverseitigem Backup, Wetter und vorbereiteter Strava-Live-Anbindung.
-
-## Projektumfang
-
-- `index.html`, `styles.css`, `app.js` - PWA-Oberflaeche
-- `storage.js` - IndexedDB/localStorage-Schicht
-- `server.js` - lokaler Node-Server fuer Static Files, Backup und Strava-OAuth/API
-- `sw.js`, `manifest.webmanifest`, `icon.svg` - PWA-Support
-- `TODO.md` - offene Projektpunkte
+Lokale PWA aus dem Claude Artifact.
 
 ## Start
 
@@ -19,12 +9,6 @@ npm run start
 ```
 
 Die App laeuft dann auf Port `5175`.
-
-Im lokalen WLAN ist der aktuelle Mac/iPhone-Link:
-
-```text
-http://192.168.178.20:5175/
-```
 
 ## Strava Live-Sync
 
@@ -41,8 +25,6 @@ STRAVA_CLIENT_ID=... STRAVA_CLIENT_SECRET=... npm run start
 ```
 
 In der App erscheint danach `Strava verbinden`. Nach dem OAuth-Login speichert der Server das Token lokal unter `data/strava-token.json`, refreshed es automatisch und liefert die aktuellen Aktivitaeten ueber `/api/strava/snapshot`. Ohne Credentials oder Verbindung nutzt die App weiter den statischen Snapshot als Fallback.
-
-Wichtig: `data/strava-token.json` und `data/backup.json` sind lokale private Laufzeitdaten und gehoeren nicht ins GitHub-Repo.
 
 ## Speicher
 

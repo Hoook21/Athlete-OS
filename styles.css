@@ -27,6 +27,7 @@ body {
   max-width: 480px;
   margin: 0 auto;
   /* iOS safe area */
+  padding-top: calc(18px + env(safe-area-inset-top));
   padding-bottom: calc(80px + env(safe-area-inset-bottom));
 }
 
@@ -137,6 +138,17 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.strava-live-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .12em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(76,215,135,.15);
+  color: var(--green);
+  border: 1px solid rgba(76,215,135,.4);
 }
 
 /* ---- Call badge ---- */

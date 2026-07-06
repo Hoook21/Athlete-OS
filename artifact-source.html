@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Fitness Coach — Head Unit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+ :root{
+ --bg:#15171c;--panel:#1f232b;--panel-2:#262b34;--line:#343a45;
+ --text:#f2f4f6;--muted:#8b93a1;--orange:#ff5a1f;--green:#4cd787;
+ --blue:#4fa8e0;--amber:#f2b441;--purple:#b48cf0;
+ }
+ *{box-sizing:border-box;}
+ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+ body{padding:18px 14px 60px;max-width:480px;margin:0 auto;}
+ .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
+ .dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;box-shadow:0 0 8px var(--green);}
+ .head-unit{position:relative;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.025) 0px,rgba(255,255,255,0.025) 1px,transparent 1px,transparent 3px),linear-gradient(155deg,#1a1d23,#101216);border:1px solid var(--line);border-radius:18px;padding:22px 20px 18px;overflow:hidden;}
+ .head-unit::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--orange),var(--blue),var(--green));opacity:.7;}
+ .field-label{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;}
+ .hero-num{font-family:'Bebas Neue',sans-serif;font-size:96px;line-height:.85;letter-spacing:.01em;color:var(--text);margin:4px 0 0;display:flex;align-items:baseline;gap:10px;}
+ .hero-num span.unit{font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--muted);font-weight:500;}
+ .hero-sub{font-size:13px;color:var(--muted);margin-top:2px;}
+ .spark{margin-top:14px;height:42px;width:100%;display:block;}
+ .gauge-row{display:flex;gap:10px;margin-top:16px;}
+ .gauge{flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;}
+ .gauge .v{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;margin-top:2px;}
+ .gauge .v.orange{color:var(--orange);} .gauge .v.green{color:var(--green);}
+ .gauge .v.blue{color:var(--blue);} .gauge .v.amber{color:var(--amber);}
+ .section{margin-top:20px;}
+ .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;}
+ .card-title{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+ .call-card{display:flex;gap:12px;align-items:flex-start;}
+ .call-badge{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.06em;padding:6px 10px;border-radius:8px;white-space:nowrap;}
+ .call-badge.go{background:rgba(76,215,135,.15);color:var(--green);border:1px solid rgba(76,215,135,.4);}
+ .call-badge.easy{background:rgba(79,168,224,.15);color:var(--blue);border:1px solid rgba(79,168,224,.4);}
+ .call-badge.rest{background:rgba(255,90,31,.15);color:var(--orange);border:1px solid rgba(255,90,31,.4);}
+ .call-text{font-size:14.5px;line-height:1.45;} .call-text b{color:var(--text);}
+ .call-meta{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted);margin-top:8px;}
+ .placeholder{border:1px dashed var(--line);border-radius:14px;padding:16px;color:var(--muted);font-size:13px;} .placeholder b{color:var(--text);}
+ .activity{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);} .activity:last-child{border-bottom:none;}
+ .chip{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;padding:4px 7px;border-radius:6px;font-weight:700;min-width:62px;text-align:center;}
+ .act-info{flex:1;min-width:0;} .act-name{font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+ .act-meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px;}
+ .act-load{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text);text-align:right;} .act-load .l{font-size:9px;color:var(--muted);display:block;letter-spacing:.1em;}
+ .coach-note{font-size:14px;line-height:1.55;font-style:italic;color:#dfe3e8;} .coach-note::before{content:"\201E";} .coach-note::after{content:"\201C";}
+ .metric{cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent;transition:opacity .15s;}
+ .metric:active{opacity:.6;}
+ .info-i{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border:1px solid var(--muted);border-radius:50%;font-size:9px;font-style:italic;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-left:5px;vertical-align:middle;line-height:1;}
+ .pop-overlay{position:fixed;inset:0;background:rgba(8,9,12,.72);backdrop-filter:blur(3px);display:flex;align-items:flex-end;justify-content:center;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s;}
+ .pop-overlay.show{opacity:1;pointer-events:auto;}
+ .pop{background:var(--panel);border:1px solid var(--line);border-top:2px solid var(--accent,var(--orange));border-radius:18px 18px 0 0;width:100%;max-width:480px;padding:22px 20px 30px;transform:translateY(20px);transition:transform .22s cubic-bezier(.2,.8,.3,1);max-height:88vh;overflow-y:auto;}
+ .pop-overlay.show .pop{transform:translateY(0);}
+ .pop-grip{width:38px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 16px;}
+ .pop-eyebrow{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+ .pop-value{font-family:'Bebas Neue',sans-serif;font-size:52px;line-height:.9;margin:4px 0 2px;}
+ .pop-status{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.04em;margin-bottom:14px;}
+ .pop-body{font-size:14px;line-height:1.55;color:#dfe3e8;}
+ .pop-body b{color:var(--text);}
+ .pop-scale{display:flex;gap:4px;margin:16px 0 4px;}
+ .pop-scale .seg{flex:1;height:6px;border-radius:3px;background:var(--panel-2);}
+ .pop-scale-labels{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--muted);letter-spacing:.05em;}
+ .stat-grid{margin-top:16px;border-top:1px solid var(--line);}
+ .stat-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;}
+ .stat-row span{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;}
+ .stat-row b{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;}
+ .rec-head{display:flex;gap:16px;align-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+ .rec-head:active{opacity:.7;}
+ .rec-ring{width:72px;height:72px;border-radius:50%;flex-shrink:0;background:conic-gradient(var(--col) calc(var(--p)*1%), var(--panel-2) 0);display:flex;align-items:center;justify-content:center;}
+ .rec-ring-inner{width:58px;height:58px;border-radius:50%;background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+ .rec-score{font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:.8;color:var(--text);}
+ .rec-of{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:.05em;}
+ .rec-status{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;letter-spacing:.04em;}
+ .rec-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+ .rec-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+ .rec-chip{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:5px 8px;display:flex;flex-direction:column;line-height:1.1;}
+ .rec-chip span{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
+ .rec-chip b{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text);margin-top:2px;}
+ .rec-form{display:flex;flex-direction:column;gap:14px;margin-top:14px;}
+ .rec-form label{display:flex;flex-direction:column;font-size:13.5px;font-weight:600;color:var(--text);gap:2px;}
+ .rec-form label span{font-weight:400;font-size:11px;color:var(--muted);}
+ .rec-form input,.rec-form select{margin-top:6px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:9px;padding:11px 12px;font-family:'JetBrains Mono',monospace;font-size:15px;width:100%;-webkit-appearance:none;}
+ .rec-save{margin-top:18px;width:100%;background:var(--green);color:#0b2417;border:none;border-radius:10px;padding:13px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.06em;cursor:pointer;}
+ .rec-save:active{opacity:.85;}
+ footer{text-align:center;margin-top:26px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#4d5564;letter-spacing:.08em;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<footer>FITNESS COACH · STRAVA-ANALYSE · WEWER / PADERBORN</footer>
+
+<script>
+// ====== Echter Snapshot aus deinen Strava-Daten (Stand 30.06.2026) ======
+const SNAPSHOT = {"fitness": 23, "fatigue": 17, "form": 6, "streak": 0, "weekKm": 33.4, "weekCount": 2, "sportLastSeen": {"Ride": 0, "StandUpPaddling": 30, "Walk": 44}, "ctlSpark": [13.7, 14.8, 17.3, 21.8, 21.3, 23.6, 23.0, 35.6, 34.7, 35.4, 34.6, 33.8, 33.9, 33.1, 32.3, 31.5, 30.8, 30.0, 29.3, 28.6, 27.9, 27.3, 26.6, 26.0, 25.4, 26.0, 25.4, 27.0, 26.4, 25.7, 25.1, 24.5, 25.6, 25.0, 24.4, 23.8, 23.2, 22.7, 22.3, 21.8, 23.3, 22.8], "activities": [{"id": "19111528086", "name": "Afternoon Ride", "sport_type": "Ride", "start_local": "2026-06-29T16:19:54", "summary": {"distance": 26355.8, "moving_time": 3164, "elevation_gain": 45, "relative_effort": 86, "total_calories": 592}}, {"id": "19089644556", "name": "Abendradfahrt", "sport_type": "Ride", "start_local": "2026-06-27T18:05:12", "summary": {"distance": 7074.1, "moving_time": 2284, "relative_effort": 9, "total_calories": 176}}, {"id": "19010875314", "name": "Kurz in den Pool springen", "sport_type": "Ride", "start_local": "2026-06-21T12:06:26", "summary": {"distance": 25662.6, "moving_time": 3440, "relative_effort": 69, "total_calories": 566}}, {"id": "18944522392", "name": "Afternoon Ride", "sport_type": "Ride", "start_local": "2026-06-16T16:09:27", "summary": {"distance": 26363.1, "moving_time": 3294, "relative_effort": 93, "total_calories": 571}}, {"id": "18915172806", "name": "Lunch Ride", "sport_type": "Ride", "start_local": "2026-06-14T11:48:44", "summary": {"distance": 26782.6, "moving_time": 3583, "relative_effort": 52, "total_calories": 604}}, {"id": "18741097285", "name": "Lunch Ride", "sport_type": "Ride", "start_local": "2026-06-01T12:47:31", "summary": {"distance": 36120, "moving_time": 5384, "relative_effort": 37, "total_calories": 679}}, {"id": "18716805284", "name": "Stand-up-Paddeln am Nachmittag", "sport_type": "StandUpPaddling", "start_local": "2026-05-30T15:53:38", "summary": {"distance": 2933.4, "moving_time": 2610, "relative_effort": 5}}, {"id": "18700247289", "name": "Lunch Ride", "sport_type": "Ride", "start_local": "2026-05-29T11:22:47", "summary": {"distance": 26592.8, "moving_time": 3329, "relative_effort": 61, "total_calories": 567}}]};
+
+// Referenz-Durchschnitte aus deiner Historie (60 Tage) für die Aktivitäts-Analyse
+const REF = {
+ Ride:{avg_km:33.8, max_km:59.7, avg_speed:25.9, avg_load:75},
+ StandUpPaddling:{avg_km:2.9, max_km:3.1, avg_speed:4.0, avg_load:7},
+ Walk:{avg_km:1.8, max_km:1.8, avg_speed:4.2, avg_load:3}
+};
+const SPORT_MAP = {
+ Ride:{label:'RENNRAD',color:'#4fa8e0'}, VirtualRide:{label:'RENNRAD',color:'#4fa8e0'},
+ Run:{label:'LAUF',color:'#ff5a1f'}, TrailRun:{label:'LAUF',color:'#ff5a1f'},
+ Walk:{label:'WALK',color:'#8b93a1'}, Hike:{label:'WALK',color:'#8b93a1'},StandUpPaddling:{label:'SUP',color:'#3fc6c6'}, Badminton:{label:'BADMINTON',color:'#b48cf0'},
+ Yoga:{label:'DEHNEN',color:'#4cd787'}, WeightTraining:{label:'KRAFT',color:'#4cd787'}, Workout:{label:'KRAFT',color:'#4cd787'}
+};
+function sportInfo(t){ return SPORT_MAP[t]||{label:(t||'SPORT').toUpperCase().slice(0,9),color:'#8b93a1'}; }
+const root = document.getElementById('root');
+
+function sparkline(vals){
+ if(!vals||!vals.length) return '';
+ const w=440,h=42,min=Math.min(...vals),max=Math.max(...vals),rng=(max-min)||1;
+ const pts=vals.map((v,i)=>[(i/(vals.length-1))*w, h-((v-min)/rng)*(h-6)-3]);
+ const d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+ const area=d+` L${w} ${h} L0 ${h} Z`;
+ return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+ <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+ <stop offset="0" stop-color="#ff5a1f" stop-opacity="0.35"/><stop offset="1" stop-color="#ff5a1f" stop-opacity="0"/>
+ </linearGradient></defs>
+ <path d="${area}" fill="url(#sg)"/>
+ <path d="${d}" fill="none" stroke="#ff5a1f" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+ </svg>`;
+}
+
+function buildRecommendation(m, w){
+ const dayMax=w.precip_prob_percent||0, windMax=w.wind_kmh||0, temp=w.temp_c;
+ const rainy=dayMax>=55, windy=windMax>=30, cold=temp!==undefined&&temp<6, hot=temp!==undefined&&temp>29;
+
+ // Regeneration einbeziehen (falls heute eingetragen)
+ const rs = (typeof recoveryScore==='function') ? recoveryScore(window.__recovery) : null;
+
+ // Schlechte Erholung hat Vorrang – auch bei guter Form
+ if(rs && rs.score<45){
+ return {badge:'rest',badgeText:'ERHOLEN',
+ text:`Dein Erholungs-Score liegt heute bei <b>${rs.score}/100</b> (${rs.notes.join(', ')}). Auch wenn deine Form ok ist, signalisiert dein Körper Erschöpfung — heute <b>Ruhetag</b> oder nur lockeres Dehnen.`,
+ meta:`Erholung ${rs.score} · Form ${m.form>0?'+':''}${m.form}`};
+ }
+
+ if(m.form<=-22 || m.streak>=6){
+ return {badge:'rest',badgeText:'RUHETAG',
+ text:`Deine Form liegt bei <b>${m.form}</b> nach ${m.streak} Trainingstagen in Folge — Zeit für aktive Erholung. Ein paar <b>Dehnübungen</b> oder ein lockerer Spaziergang reichen heute.`,
+ meta:`Form ${m.form} · ${m.streak} Tage Serie`};
+ }
+ let pick,why;
+ if(rainy){pick='DEHNEN';why=`Regen wahrscheinlich (${dayMax}%) — heute lieber drinnen Beweglichkeit und Rumpf trainieren.`;}
+ else if(windy){pick='LAUF';why=`Bis ${Math.round(windMax)} km/h Wind — SUP fällt aus, auf dem Rennrad ungemütlich. Ein Lauf passt bei Wind am besten.`;}
+ else if(cold){pick='LAUF';why=`Bei ${Math.round(temp)}°C lohnt eine zügige Laufeinheit mehr als eine lange Ausfahrt.`;}
+ else if(hot){pick='SUP';why=`Bei ${Math.round(temp)}°C ist SUP auf dem Wasser angenehmer als eine Ausfahrt in der Hitze.`;}
+ else {pick='RENNRAD';why=`Gute Bedingungen: ${Math.round(temp)}°C, wenig Wind, trocken — ideal fürs Rennrad.`;}
+ const badGap=m.sportLastSeen&&m.sportLastSeen['Badminton'];
+ if(badGap!==undefined&&badGap>=10){pick='BADMINTON';why=`Dein letztes Badminton liegt ${badGap} Tage zurück — wetterunabhängig, guter Ausgleich zum Radfahren.`;}
+
+ // Gute Erholung als Verstärker
+ let recNote='';
+ if(rs && rs.score>=80) recNote=` Deine Erholung ist top (${rs.score}/100) — guter Tag, um Intensität zu geben.`;
+ else if(rs && rs.score<60) { recNote=` Erholung nur mäßig (${rs.score}/100) — halte die Intensität moderat.`; }
+
+ const lowRec = rs && rs.score<60;
+ const badge=(m.form<-8||lowRec)?'easy':'go', badgeText=(m.form<-8||lowRec)?'LOCKER ANGEHEN':'GO';
+ const recMeta = rs?` · Erholung ${rs.score}`:'';
+ return {badge,badgeText,text:`Heutiger Vorschlag: <b>${pick}</b>. ${why}${recNote}`,
+ meta:`Form ${m.form}${recMeta} · ${Math.round(temp)}°C · Wind ${Math.round(windMax)} km/h${w._fallback?' · ⚠ Wetter geschätzt':(w.condition?' · '+w.condition:'')}`};
+}
+
+function renderActivity(a, idx){
+ const info=sportInfo(a.sport_type), s=a.summary||{};
+ const km=((s.distance||0)/1000).toFixed(1), mins=Math.round((s.moving_time||0)/60);
+ const date=new Date(a.start_local).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
+ const load=(typeof s.relative_effort==='number')?s.relative_effort:Math.round((s.moving_time||0)/60*4);
+ return `<div class="activity metric" data-activity="${idx}">
+ <div class="chip" style="background:color-mix(in srgb, ${info.color} 18%, transparent);color:${info.color};border:1px solid color-mix(in srgb, ${info.color} 45%, transparent);">${info.label}</div>
+ <div class="act-info"><div class="act-name">${a.name||info.label}</div><div class="act-meta">${date} · ${km} km · ${mins} min</div></div>
+ <div class="act-load">${load}<span class="l">LOAD</span></div></div>`;
+}
+
+function render(m, rec, w){
+ root.innerHTML = `
+ <div class="eyebrow">
+ <span><span class="dot"></span>STRAVA · WEWER</span>
+ <span>${new Date().toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'})}</span>
+ </div>
+ <div class="head-unit">
+ <div class="metric" data-metric="fitness">
+ <div class="field-label">Fitness Score (CTL) <span class="info-i">i</span></div>
+ <div class="hero-num">${m.fitness}<span class="unit">PUNKTE</span></div>
+ <div class="hero-sub">Chronische Trainingslast · 42-Tage-Trend</div>
+ ${sparkline(m.ctlSpark)}
+ </div>
+ <div class="gauge-row">
+ <div class="gauge metric" data-metric="fatigue"><div class="field-label">Fatigue <span class="info-i">i</span></div><div class="v orange">${m.fatigue}</div></div>
+ <div class="gauge metric" data-metric="form"><div class="field-label">Form <span class="info-i">i</span></div><div class="v ${m.form>=0?'green':'amber'}">${m.form>0?'+':''}${m.form}</div></div>
+ <div class="gauge metric" data-metric="week"><div class="field-label">Woche <span class="info-i">i</span></div><div class="v blue">${m.weekKm}<span style="font-size:11px;color:var(--muted);"> km</span></div></div>
+ </div>
+ </div>
+ <div class="section"><div class="card call-card">
+ <div class="call-badge ${rec.badge}">${rec.badgeText}</div>
+ <div style="flex:1;"><div class="call-text">${rec.text}</div><div class="call-meta">${rec.meta}</div></div>
+ </div></div>
+ <div class="section">${renderRecoveryCard(window.__recovery)}</div>
+ <div class="section"><div class="card">
+ <div class="card-title">Letzte Aktivitäten</div>
+ ${(m.activities||[]).map((a,i)=>renderActivity(a,i)).join('')}
+ </div></div>
+ `;
+ root.querySelectorAll('[data-metric]').forEach(el=>{
+ el.addEventListener('click', ()=>openMetricPopup(el.getAttribute('data-metric'), m));
+ });
+ root.querySelectorAll('[data-activity]').forEach(el=>{
+ el.addEventListener('click', ()=>openActivityPopup(m.activities[+el.getAttribute('data-activity')]));
+ });
+ const recEdit=document.getElementById('recEdit');
+ if(recEdit) recEdit.addEventListener('click', openRecoveryInput);
+ const recCard=document.getElementById('recScoreClick');
+ if(recCard) recCard.addEventListener('click', openRecoveryPopup);
+}
+
+// ---- Erklär-Popup für die Kennzahlen ----
+function metricInfo(key, m){
+ if(key==='fitness'){
+ const v=m.fitness;
+ const status = v<20?{t:'Aufbauphase',c:'var(--amber)'} : v<40?{t:'Solide Grundlage',c:'var(--green)'} : {t:'Stark',c:'var(--green)'};
+ return {accent:'var(--orange)', eyebrow:'Fitness Score · CTL', value:v, status,
+ body:`Dein <b>Fitness Score</b> (in der Sportwissenschaft <b>CTL</b> – Chronic Training Load) ist der über 42 Tage geglättete Schnitt deiner Trainingsbelastung. Er zeigt, wie viel Form du dir über Wochen aufgebaut hast.<br><br>Er steigt langsam mit regelmäßigem Training und sinkt, wenn du pausierst. Sprünge an einzelnen Tagen zählen wenig – Konstanz ist alles. Dein aktueller Wert von <b>${v}</b> spiegelt deine Radkilometer der letzten Wochen wider.`,
+ scale:{segs:5, fill:Math.max(1,Math.min(5,Math.round(v/12))), left:'0', right:'60+'}};
+ }
+ if(key==='fatigue'){
+ const v=m.fatigue;
+ const status = v>m.fitness?{t:'Erhöht',c:'var(--orange)'} : {t:'Im Rahmen',c:'var(--green)'};
+ return {accent:'var(--orange)', eyebrow:'Fatigue · ATL', value:v, status,
+ body:`<b>Fatigue</b> (<b>ATL</b> – Acute Training Load) ist deine kurzfristige Müdigkeit, geglättet über nur 7 Tage. Sie reagiert schnell auf harte oder gehäufte Einheiten.<br><br>Liegt sie deutlich über deinem Fitness Score, steckt dir die Belastung noch in den Beinen. Dein Wert <b>${v}</b> bei Fitness ${m.fitness} bedeutet: ${v>m.fitness?'die letzten Tage waren fordernd – plane Erholung ein.':'deine Belastung ist gut verdaut.'}`,
+ scale:{segs:5, fill:Math.max(1,Math.min(5,Math.round(v/12))), left:'frisch', right:'müde'}};
+ }
+ if(key==='form'){
+ const v=m.form;
+ const status = v>5?{t:'Frisch & erholt',c:'var(--green)'} : v>=-10?{t:'Ausgeglichen',c:'var(--blue)'} : v>=-20?{t:'Belastet',c:'var(--amber)'} : {t:'Übermüdet',c:'var(--orange)'};
+ return {accent:'var(--green)', eyebrow:'Form · TSB', value:(v>0?'+':'')+v, status,
+ body:`<b>Form</b> (<b>TSB</b> – Training Stress Balance) ist Fitness minus Fatigue und sagt, wie bereit du heute bist.<br><br>Faustregel: <b>über +5</b> bist du frisch und kannst Gas geben, <b>-10 bis +5</b> ist normales Training, <b>unter -20</b> heißt Übermüdung und Pause. Dein Wert von <b>${(v>0?'+':'')+v}</b> bedeutet: ${v>5?'top erholt – guter Tag für eine intensive Einheit.':v>=-10?'solide Balance – normal weitertrainieren.':'dein Körper braucht Erholung.'}`,
+ scale:{segs:5, fill:v>5?5:v>=-10?4:v>=-20?2:1, left:'müde', right:'frisch'}};
+ }
+ // week
+ const v=m.weekKm;
+ return {accent:'var(--blue)', eyebrow:'Diese Woche', value:v+' km', status:{t:m.weekCount+' Einheiten',c:'var(--blue)'},
+ body:`Die <b>Summe deiner Kilometer</b> der letzten 7 Tage aus allen Sportarten – aktuell <b>${v} km</b> aus <b>${m.weekCount} Einheiten</b>.<br><br>Eine grobe Orientierung für dein Wochenvolumen. Stetige, leichte Steigerungen über die Wochen bauen Fitness auf, ohne dich zu überlasten.`,
+ scale:null};
+}
+
+function openMetricPopup(key, m){
+ const info=metricInfo(key, m);
+ let scaleHTML='';
+ if(info.scale){
+ const segs=Array.from({length:info.scale.segs},(_,i)=>
+ <div class="seg" style="${i<info.scale.fill?`background:${info.accent};:''}"></div>`).join('');
+ scaleHTML=`<div class="pop-scale">${segs}</div>
+ <div class="pop-scale-labels"><span>${info.scale.left}</span><span>${info.scale.right}</span></div>`;
+ }
+ showPopup(`
+ <div class="pop-eyebrow">${info.eyebrow}</div>
+ <div class="pop-value" style="color:${info.accent};">${info.value}</div>
+ <div class="pop-status" style="color:${info.status.c};">${info.status.t}</div>
+ <div class="pop-body">${info.body}</div>
+ ${scaleHTML}
+ `, info.accent);
+}
+
+function showPopup(inner, accent){
+ const overlay=document.createElement('div');
+ overlay.className='pop-overlay';
+ overlay.innerHTML=`<div class="pop" style="--accent:${accent};"><div class="pop-grip"></div>${inner}</div>`;
+ document.body.appendChild(overlay);
+ requestAnimationFrame(()=>overlay.classList.add('show'));
+ const close=()=>{ overlay.classList.remove('show'); setTimeout(()=>overlay.remove(),220); };
+ overlay.addEventListener('click', e=>{ if(e.target===overlay) close(); });
+}
+
+function openActivityPopup(a){
+ if(!a) return;
+ const info=sportInfo(a.sport_type), s=a.summary||{};
+ const accent=info.color;
+ const km=((s.distance||0)/1000).toFixed(1);
+ const mins=Math.round((s.moving_time||0)/60);
+ const load=(typeof s.relative_effort==='number')?s.relative_effort:Math.round((s.moving_time||0)/60*4);
+ const hasRE=(typeof s.relative_effort==='number');
+ const dt=new Date(a.start_local);
+ const dateStr=dt.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long'});
+ const timeStr=dt.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+ const speed=mins>0?(parseFloat(km)/(mins/60)):0;
+
+ // Load-Einordnungconst loadStatus = load>=100?{t:'Sehr fordernd',c:'var(--orange)'} : load>=60?{t:'Solide Einheit',c:'var(--green)'} : load>=30?{t:'Lockere Einheit',c:'var(--blue)'} : {t:'Kurz & leicht',c:'var(--muted)'};
+
+ // Detail-Stats
+ const rows=[
+ ['Distanz', km+' km'],
+ ['Dauer', mins+' min'],
+ speed>0?['Schnitt', speed.toFixed(1)+' km/h']:null,
+ (typeof s.elevation_gain==='number'&&s.elevation_gain>0)?['Höhenmeter', Math.round(s.elevation_gain)+' m']:null,
+ (typeof s.total_calories==='number')?['Kalorien', Math.round(s.total_calories)+' kcal']:null,
+ ].filter(Boolean);
+
+ const analysis = buildActivityAnalysis(a.sport_type, {km:parseFloat(km), mins, speed, load, hasRE, elev:s.elevation_gain});
+
+ const statRows=rows.map(r=>`<div class="stat-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+
+ showPopup(`
+ <div class="pop-eyebrow">${dateStr} · ${timeStr} Uhr</div>
+ <div class="pop-value" style="color:${accent};font-size:30px;line-height:1.05;margin-top:6px;">${a.name||info.label}</div>
+ <div class="pop-status" style="color:${loadStatus.c};margin-top:8px;">${info.label} · Load ${load} · ${loadStatus.t}</div>
+ <div class="stat-grid">${statRows}</div>
+ <div class="pop-eyebrow" style="margin-top:18px;color:${accent};">Coach-Analyse</div>
+ <div class="pop-body" style="margin-top:6px;">${analysis}</div>
+ `, accent);
+}
+
+function buildActivityAnalysis(sport, d){
+ const ref = REF[sport];
+ const parts = [];
+
+ // Rennrad: ausführliche Analyse
+ if(sport==='Ride'){
+ // Distanz
+ if(d.km >= ref.max_km*0.95) parts.push(`Mit <b>${d.km} km</b> war das eine deiner längsten Ausfahrten – nahe an deinem Rekord von ${ref.max_km} km. Starke Ausdauerleistung.`);
+ else if(d.km >= ref.avg_km*1.2) parts.push(`Mit <b>${d.km} km</b> lagst du klar über deinem Schnitt von ${ref.avg_km} km – eine ordentliche Distanz.`);
+ else if(d.km <= ref.avg_km*0.55) parts.push(`Mit <b>${d.km} km</b> war das eher eine kurze Runde (dein Schnitt liegt bei ${ref.avg_km} km) – gut als lockere Einheit oder Pendelfahrt.`);
+ else parts.push(`Die <b>${d.km} km</b> liegen im Bereich deiner typischen Ausfahrt (Schnitt ${ref.avg_km} km).`);
+
+ // Tempo
+ if(d.speed >= ref.avg_speed+2) parts.push(`Dein Schnitt von <b>${d.speed.toFixed(1)} km/h</b> war flott – über deinem üblichen Tempo (${ref.avg_speed} km/h).`);
+ else if(d.speed <= ref.avg_speed-3) parts.push(`Das Tempo von <b>${d.speed.toFixed(1)} km/h</b> war ruhiger als gewohnt (${ref.avg_speed} km/h) – passt zu einer Grundlagen- oder Erholungsfahrt.`);
+ else parts.push(`Das Tempo von <b>${d.speed.toFixed(1)} km/h</b> entsprach deinem normalen Schnitt.`);
+
+ // Höhenmeter
+ if(typeof d.elev==='number' && d.elev>=200) parts.push(`Mit <b>${Math.round(d.elev)} Höhenmetern</b> war ordentlich Profil dabei – das macht die Einheit härter, als die Distanz allein vermuten lässt.`);
+
+ // Load-Einordnung relativ
+ if(d.load >= ref.avg_load*1.4) parts.push(`Der Load von <b>${d.load}</b> liegt deutlich über deinem Schnitt (${ref.avg_load}) – eine intensive Belastung, danach lohnt Erholung.`);
+ else if(d.load <= ref.avg_load*0.5) parts.push(`Der Load von <b>${d.load}</b> war niedrig (Schnitt ${ref.avg_load}) – schonend für den Körper.`);
+ else parts.push(`Der Load von <b>${d.load}</b> war typisch für deine Ausfahrten (Schnitt ${ref.avg_load}).`);
+
+ if(!d.hasRE) parts.push(`<span style="color:var(--muted);">Hinweis: Für diese Fahrt lag keine Herzfrequenz vor – der Load ist daher geschätzt.</span>`);
+ return parts.join(' ');
+ }
+
+ // SUP
+ if(sport==='StandUpPaddling'){
+ parts.push(`SUP ist ein guter Ausgleich zum Radfahren: Es trainiert Rumpf und Gleichgewicht, kaum Beinbelastung. Mit <b>${d.km} km</b> in ${d.mins} min warst du gemütlich unterwegs – Erholung und Stabilität statt Intensität.`);
+ parts.push(`Der niedrige Load (<b>${d.load}</b>) bestätigt: aktive Erholung, die deine Beine vom Rad entlastet.`);
+ return parts.join(' ');
+ }
+
+ // Walk
+ if(sport==='Walk'){
+ parts.push(`Ein lockerer Spaziergang über <b>${d.km} km</b> – ideale aktive Erholung. Hält den Kreislauf in Schwung, ohne Belastung für die Regeneration.`);
+ return parts.join(' ');
+ }
+
+ // Fallback (Lauf, Badminton etc.)
+ parts.push(`<b>${d.km} km</b> in ${d.mins} min bei einem Load von <b>${d.load}</b>. ${ref?'':'Für diese Sportart sammelt der Coach noch Vergleichswerte – je mehr Einheiten, desto genauer die Analyse.'}`);
+ return parts.join(' ');
+}
+
+// ---- Optionale Live-Wetteraktualisierung (scheitert leise, falls API blockiert) ----
+async function fetchWeather(){
+ const todayStr=new Date().toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+ let data;
+ try{
+ const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
+ body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1024,
+ messages:[{role:"user",content:`Search the web for today's weather forecast in Wewer, Paderborn, Germany (today is ${todayStr}). I need current temperature °C, today's max wind km/h, and precipitation probability percent. Output ONLY one line of raw JSON, nothing else: {"temp_c":NUMBER,"wind_kmh":NUMBER,"precip_prob_percent":NUMBER,"condition":"SHORT GERMAN"}`}],
+ tools:[{type:"web_search_20250305",name:"web_search"}]})});
+ data=await r.json();
+ }catch(e){ return weatherFallback(); }
+ if(!data||data.error) return weatherFallback();
+ const text=(data.content||[]).filter(b=>b&&b.type==='text'&&typeof b.text==='string').map(b=>b.text).join(' ');
+ return extractWeather(text)||weatherFallback();
+}
+function extractWeather(text){
+ if(!text) return null;
+ const c=text.replace(/```json/gi,'').replace(/```/g,'');
+ const ms=c.match(/\{[^{}]*"temp_c"[^{}]*\}/g);
+ const cand=ms?ms[ms.length-1]:((c.match(/\{[\s\S]*\}/)||[null])[0]);
+ if(!cand) return null;
+ try{const o=JSON.parse(cand); if(typeof o.temp_c!=='number') return null;
+ return {temp_c:o.temp_c,wind_kmh:typeof o.wind_kmh==='number'?o.wind_kmh:10,precip_prob_percent:typeof o.precip_prob_percent==='number'?o.precip_prob_percent:0,condition:typeof o.condition==='string'?o.condition:''};
+ }catch(e){return null;}
+}
+function weatherFallback(){return {temp_c:18,wind_kmh:12,precip_prob_percent:20,condition:'',_fallback:true};}
+
+// ===================== REGENERATION =====================
+// Persistente Werte pro Tag in window.storage; Baseline lernt aus der Historie.
+window.__recovery = null; // heutiger Eintrag {date, sleep, rhr, hrv, feel}
+window.__recoveryHist = []; // alle Einträge
+
+async function loadRecovery(){
+ try{
+ const res = await window.storage.list('recovery:', false);
+ const keys = (res && res.keys) ? res.keys : [];
+ const hist = [];
+ for(const k of keys){
+ try{ const r = await window.storage.get(k, false); if(r) hist.push(JSON.parse(r.value)); }catch(e){}
+ }
+ if(hist.length){
+ hist.sort((a,b)=> a.date<b.date?1:-1); // neueste zuerst
+ window.__recoveryHist = hist;
+ const today = new Date().toISOString().slice(0,10);
+ const stored = hist.find(h=>h.date===today);
+ if(stored) window.__recovery = stored;
+ }
+ }catch(e){
+ // Speicher nicht verfügbar – In-Memory-Werte bleiben erhalten
+ }
+}
+
+async function saveRecovery(entry){
+ entry.date = new Date().toISOString().slice(0,10);
+ // 1) Sofort in-memory setzen – funktioniert immer, auch ohne Persistenz
+ window.__recovery = entry;
+ window.__recoveryHist = (window.__recoveryHist||[]).filter(h=>h.date!==entry.date);
+ window.__recoveryHist.unshift(entry);
+ // 2) Best-effort dauerhaft speichern
+ try{ await window.storage.set('recovery:'+entry.date, JSON.stringify(entry), false); }catch(e){}
+}
+
+// Baseline aus Historie (ohne heute), min. 3 Einträge nötig
+function recoveryBaseline(){
+ const today = new Date().toISOString().slice(0,10);
+ const past = window.__recoveryHist.filter(h=>h.date!==today);
+ const avg = (arr)=> arr.length? arr.reduce((s,x)=>s+x,0)/arr.length : null;
+ return {
+ rhr: avg(past.filter(h=>h.rhr).map(h=>h.rhr)),
+ hrv: avg(past.filter(h=>h.hrv).map(h=>h.hrv)),n: past.length
+ };
+}
+
+// Erholungs-Score 0–100 aus den vorhandenen Werten
+function recoveryScore(e){
+ if(!e) return null;
+ const base = recoveryBaseline();
+ let pts=[], notes=[];
+
+ // Schlafdauer: 8h ideal
+ if(typeof e.sleep==='number'){
+ let s;
+ if(e.sleep>=7.5) s=100; else if(e.sleep>=7) s=88; else if(e.sleep>=6) s=70; else if(e.sleep>=5) s=48; else s=30;
+ pts.push(s);
+ notes.push(e.sleep>=7.5?'Schlafdauer top':(e.sleep>=6?'Schlaf ok':'zu wenig Schlaf'));
+ }
+ // Ruhepuls: niedriger als Baseline = besser
+ if(typeof e.rhr==='number' && base.rhr){
+ const d = e.rhr - base.rhr;
+ let s = 85 - d*6; // pro bpm über Schnitt -6
+ s=Math.max(20,Math.min(100,s));
+ pts.push(s);
+ notes.push(d<=-2?'Ruhepuls niedrig (gut)':(d>=3?'Ruhepuls erhöht':'Ruhepuls normal'));
+ } else if(typeof e.rhr==='number'){
+ pts.push(75); // ohne Baseline neutral
+ }
+ // HRV: höher als Baseline = besser
+ if(typeof e.hrv==='number' && base.hrv){
+ const d = (e.hrv - base.hrv)/base.hrv;
+ let s = 80 + d*120;
+ s=Math.max(20,Math.min(100,s));
+ pts.push(s);
+ notes.push(d>=0.05?'HRV über Schnitt (gut)':(d<=-0.1?'HRV gedämpft':'HRV normal'));
+ } else if(typeof e.hrv==='number'){
+ pts.push(75);
+ }
+ // Subjektives Gefühl 1–5
+ if(typeof e.feel==='number'){
+ pts.push((e.feel-1)/4*100);
+ }
+
+ if(!pts.length) return null;
+ const score = Math.round(pts.reduce((s,x)=>s+x,0)/pts.length);
+ const status = score>=80?{t:'Gut erholt',c:'var(--green)'} : score>=60?{t:'Solide',c:'var(--blue)'} : score>=45?{t:'Mäßig',c:'var(--amber)'} : {t:'Erschöpft',c:'var(--orange)'};
+ return {score, status, notes, base};
+}
+
+function renderRecoveryCard(e){
+ const rs = recoveryScore(e);
+ if(!rs){
+ return `<div class="card">
+ <div class="card-title"><span>Regeneration</span><button class="wbtn" id="recEdit">Werte eintragen</button></div>
+ <div class="placeholder"><b>Noch keine Werte für heute.</b> Trag Schlaf, Ruhepuls und HRV aus der Apple Health App ein – daraus berechne ich deinen Erholungs-Score und beziehe ihn in die Tagesempfehlung ein.</div>
+ </div>`;
+ }
+ const e2=e;
+ const chips=[];
+ if(typeof e2.sleep==='number') chips.push(`<div class="rec-chip"><span>Schlaf</span><b>${e2.sleep} h</b></div>`);
+ if(typeof e2.rhr==='number') chips.push(`<div class="rec-chip"><span>Ruhepuls</span><b>${e2.rhr}</b></div>`);
+ if(typeof e2.hrv==='number') chips.push(`<div class="rec-chip"><span>HRV</span><b>${e2.hrv} ms</b></div>`);
+ if(typeof e2.feel==='number') chips.push(`<div class="rec-chip"><span>Gefühl</span><b>${['—','schlecht','mäßig','ok','gut','top'][e2.feel]}</b></div>`);
+ return `<div class="card">
+ <div class="card-title"><span>Regeneration</span><button class="wbtn" id="recEdit">Bearbeiten</button></div>
+ <div class="rec-head" id="recScoreClick">
+ <div class="rec-ring" style="--p:${rs.score};--col:${rs.status.c};"><div class="rec-ring-inner"><div class="rec-score">${rs.score}</div><div class="rec-of">/100</div></div></div>
+ <div style="flex:1;">
+ <div class="rec-status" style="color:${rs.status.c};">${rs.status.t}</div>
+ <div class="rec-sub">Erholungs-Score · tippen für Details</div>
+ <div class="rec-chips">${chips.join('')}</div>
+ </div>
+ </div>
+ </div>`;
+}
+
+function openRecoveryInput(){
+ const e = window.__recovery || {};
+ showPopup(`
+ <div class="pop-eyebrow" style="color:var(--green);">Regeneration eintragen</div>
+ <div class="pop-body" style="margin:8px 0 4px;color:var(--muted);font-size:13px;">Aus der Apple Health App ablesen. Leer lassen, was du nicht hast – der Score nutzt, was da ist.</div>
+ <div class="rec-form">
+ <label>Schlafdauer <span>Health → Schlaf, in Stunden</span><input id="inSleep" type="number" step="0.1" inputmode="decimal" placeholder="z.B. 7.5" value="${e.sleep??''}"></label>
+ <label>Ruhepuls <span>Health → Ruhepuls, in bpm</span><input id="inRhr" type="number" step="1" inputmode="numeric" placeholder="z.B. 52" value="${e.rhr??''}"></label><label>HRV <span>Health → Herzfrequenzvariabilität, in ms</span><input id="inHrv" type="number" step="1" inputmode="numeric" placeholder="z.B. 65" value="${e.hrv??''}"></label>
+ <label>Gefühl heute <span>dein subjektiver Eindruck</span>
+ <select id="inFeel">
+ <option value="">—</option>
+ <option value="1" ${e.feel===1?'selected':''}>schlecht</option>
+ <option value="2" ${e.feel===2?'selected':''}>mäßig</option>
+ <option value="3" ${e.feel===3?'selected':''}>ok</option>
+ <option value="4" ${e.feel===4?'selected':''}>gut</option>
+ <option value="5" ${e.feel===5?'selected':''}>top</option>
+ </select>
+ </label>
+ </div>
+ <div id="recWarn" style="color:var(--orange);font-size:12px;margin-top:12px;min-height:14px;"></div>
+ <button class="rec-save" id="recSave">Speichern</button>
+ `, 'var(--green)');
+ document.getElementById('recSave').addEventListener('click', async ()=>{
+ const num=(id)=>{ const el=document.getElementById(id); if(!el) return undefined; const v=el.value.trim(); return v===''?undefined:parseFloat(v); };
+ const feelEl=document.getElementById('inFeel');
+ const feelV=feelEl?feelEl.value:'';
+ const entry={ sleep:num('inSleep'), rhr:num('inRhr'), hrv:num('inHrv'), feel:feelV===''?undefined:parseInt(feelV) };
+ if(entry.sleep===undefined && entry.rhr===undefined && entry.hrv===undefined && entry.feel===undefined){
+ const w=document.getElementById('recWarn'); if(w) w.textContent='Bitte mindestens einen Wert eingeben.';
+ return;
+ }
+ await saveRecovery(entry);
+ const ov=document.querySelector('.pop-overlay');
+ if(ov){ ov.classList.remove('show'); setTimeout(()=>ov.remove(),220); }
+ rerender();
+ });
+}
+
+function openRecoveryPopup(){
+ const e = window.__recovery;
+ const rs = recoveryScore(e);
+ if(!rs) return;
+ let body = Dein Erholungs-Score von <b>${rs.score}/100</b> fasst deine Regenerationswerte von heute zusammen: ${rs.notes.join(', ')}.<br><br>;
+ if(rs.base.n < 3){
+ body += <span style="color:var(--muted);">Hinweis: Für Ruhepuls und HRV lerne ich noch deine persönliche Baseline (${rs.base.n}/3 Tage). Sobald ein paar Einträge da sind, wird die Einordnung genauer – dann zählt, wie du <i>im Vergleich zu dir selbst</i> dastehst.</span><br><br>;
+ }
+ // Kombi mit Form
+ const form = SNAPSHOT.form;
+ let combo;
+ if(rs.score>=70 && form>-10) combo = Erholung gut und Form frisch (${form>0?'+':''}${form}) – grünes Licht für eine intensivere Einheit.;
+ else if(rs.score<45) combo = Trotz Form ${form>0?'+':''}${form}: dein Körper signalisiert wenig Erholung. Heute lieber locker oder Ruhetag.;
+ else combo = Erholung im Mittelfeld bei Form ${form>0?'+':''}${form} – eine normale Einheit ist ok, halte die Intensität moderat.;
+ body += <b>Zusammenspiel mit dem Training:</b> ${combo};
+ showPopup(`
+ <div class="pop-eyebrow" style="color:${rs.status.c};">Regeneration · heute</div>
+ <div class="pop-value" style="color:${rs.status.c};">${rs.score}<span style="font-size:18px;color:var(--muted);"> /100</span></div>
+ <div class="pop-status" style="color:${rs.status.c};">${rs.status.t}</div>
+ <div class="pop-body" style="margin-top:14px;">${body}</div>
+ `, rs.status.c);
+}
+
+function rerender(){
+ render(SNAPSHOT, buildRecommendation(SNAPSHOT, window.__lastWeather||weatherFallback()), window.__lastWeather||weatherFallback());
+}
+
+// ---- Start: sofort echten Snapshot zeigen, dann Wetter + Recovery laden ----
+(function start(){
+ const m=SNAPSHOT;
+ const initW=weatherFallback();
+ window.__lastWeather=initW;
+ render(m, buildRecommendation(m,initW), initW);
+ loadRecovery().then(()=>rerender());
+ fetchWeather().then(w=>{ window.__lastWeather=w; render(m, buildRecommendation(m,w), w); }).catch(()=>{});
+})();
+</script>
+</body>
+</html>

@@ -3,14 +3,23 @@ const http = require('node:http');
 const fs   = require('node:fs');
 const path = require('node:path');
 
-const PORT        = Number(process.env.PORT || 5175);
+const PORT        = Number(process.env.PORT || 5176);
 const ROOT        = __dirname;
 const DATA_DIR    = path.join(ROOT, 'data');
 const BACKUP_FILE = path.join(DATA_DIR, 'backup.json');
-const STRAVA_TOKEN_FILE = path.join(DATA_DIR, 'strava-token.json');
-const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID || '';
-const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET || '';
+const STRAVA_TOKEN_FILE  = path.join(DATA_DIR, 'strava-token.json');
+const STRAVA_CONFIG_FILE = path.join(DATA_DIR, 'strava-config.json');
 const STRAVA_SCOPE = 'read,activity:read_all';
+
+let stravaConfig = { clientId: '', clientSecret: '' };
+
+function loadStravaConfig() {
+  const file = readJsonFile(STRAVA_CONFIG_FILE);
+  stravaConfig = {
+    clientId:     (file && file.clientId)     || process.env.STRAVA_CLIENT_ID     || '',
+    clientSecret: (file && file.clientSecret) || process.env.STRAVA_CLIENT_SECRET || '',
+  };
+}
 
 const MIME = {
   '.html':        'text/html; charset=utf-8',
@@ -72,7 +81,7 @@ function readBody(req) {
 }
 
 function stravaConfigured() {
-  return Boolean(STRAVA_CLIENT_ID && STRAVA_CLIENT_SECRET);
+  return Boolean(stravaConfig.clientId && stravaConfig.clientSecret);
 }
 
 function publicBaseUrl(req) {
@@ -97,8 +106,8 @@ async function exchangeStravaToken(params) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      client_id: STRAVA_CLIENT_ID,
-      client_secret: STRAVA_CLIENT_SECRET,
+      client_id: stravaConfig.clientId,
+      client_secret: stravaConfig.clientSecret,
       ...params,
     }),
   });
@@ -203,11 +212,13 @@ function buildStravaSnapshot(activities) {
   };
 }
 
+loadStravaConfig();
+
 const server = http.createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
 
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (pathname.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
 
@@ -217,10 +228,22 @@ const server = http.createServer(async (req, res) => {
     return jsonOk(res, stravaStatus(req));
   }
 
+  if (pathname === '/api/strava/config' && req.method === 'POST') {
+    let body;
+    try { body = await readBody(req); } catch { return jsonError(res, 400, 'Invalid JSON body'); }
+    const { clientId, clientSecret } = body;
+    if (typeof clientId !== 'string' || typeof clientSecret !== 'string' || !clientId || !clientSecret) {
+      return jsonError(res, 422, 'clientId and clientSecret required');
+    }
+    writeJsonFile(STRAVA_CONFIG_FILE, { clientId: clientId.trim(), clientSecret: clientSecret.trim() });
+    loadStravaConfig();
+    return jsonOk(res, { ok: true, configured: stravaConfigured() });
+  }
+
   if (pathname === '/api/strava/oauth/start') {
     if (!stravaConfigured()) return jsonError(res, 503, 'Strava is not configured');
     const url = new URL('https://www.strava.com/oauth/authorize');
-    url.searchParams.set('client_id', STRAVA_CLIENT_ID);
+    url.searchParams.set('client_id', stravaConfig.clientId);
     url.searchParams.set('redirect_uri', `${publicBaseUrl(req)}/api/strava/callback`);
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('approval_prompt', 'auto');

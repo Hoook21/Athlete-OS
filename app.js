@@ -351,12 +351,62 @@ function renderRecoveryCard() {
   </div>`;
 }
 
+function renderStravaCard() {
+  if (stravaState.live) {
+    return `<div class="card">
+      <div class="card-title"><span>Strava</span><span class="strava-live-badge">LIVE</span></div>
+      <div class="placeholder"><b>Verbunden.</b> Aktivitäten und Kennzahlen werden live von Strava geladen.</div>
+    </div>`;
+  }
+  if (stravaState.configured && !stravaState.connected) {
+    return `<div class="card">
+      <div class="card-title">Strava verbinden</div>
+      <div class="placeholder">API-Daten sind hinterlegt. Jetzt mit deinem Strava-Konto verbinden, damit Live-Daten geladen werden.</div>
+      <div class="data-actions"><button class="data-btn" id="stravaOAuthBtn">Strava verbinden</button></div>
+    </div>`;
+  }
+  return `<div class="card">
+    <div class="card-title">Strava Einrichtung</div>
+    <div class="placeholder">Trag deine API-Zugangsdaten ein (<b>strava.com/settings/api</b>). Client-ID und Secret werden lokal auf dem Server gespeichert.</div>
+    <div class="rec-form">
+      <label>Client-ID <span>numerisch</span><input id="stravaClientId" type="text" inputmode="numeric" placeholder="12345" autocomplete="off"></label>
+      <label>Client Secret <span>aus strava.com/settings/api</span><input id="stravaClientSecret" type="password" placeholder="••••••••" autocomplete="off"></label>
+    </div>
+    <div id="stravaConfigErr" style="color:var(--orange);font-size:12px;margin-top:12px;min-height:14px;"></div>
+    <div class="data-actions"><button class="data-btn" id="stravaConfigSave">Speichern</button></div>
+  </div>`;
+}
+
 function renderHistory() {
   if (!recoveryHist.length) return `<div class="placeholder">Noch keine gespeicherte Historie.</div>`;
   return recoveryHist.slice(0, 7).map((row) => {
     const rs = recoveryScore(row);
     return `<div class="hist-row"><div><div>${new Date(row.date).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" })}</div><div class="hist-date">${row.sleep != null ? row.sleep : "-"}h Schlaf · HRV ${row.hrv != null ? row.hrv : "-"}</div></div><div class="hist-score" style="color:${rs ? rs.status.c : "var(--muted)"}">${rs ? rs.score : "-"}</div></div>`;
   }).join("");
+}
+
+async function saveStravaConfig() {
+  const idEl = document.getElementById("stravaClientId");
+  const secEl = document.getElementById("stravaClientSecret");
+  const errEl = document.getElementById("stravaConfigErr");
+  const clientId = (idEl ? idEl.value : "").trim();
+  const clientSecret = (secEl ? secEl.value : "").trim();
+  if (!clientId || !clientSecret) {
+    if (errEl) errEl.textContent = "Bitte Client-ID und Secret eingeben.";
+    return;
+  }
+  try {
+    const resp = await fetch("/api/strava/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId, clientSecret }),
+    });
+    if (!resp.ok) throw new Error("Server-Fehler beim Speichern");
+    await loadStravaSnapshot();
+  } catch (err) {
+    const el = document.getElementById("stravaConfigErr");
+    if (el) el.textContent = err.message || "Fehler beim Speichern";
+  }
 }
 
 function render() {
@@ -378,6 +428,7 @@ function render() {
       </div>
     </div>
     <section class="section"><div class="card call-card"><div class="call-badge ${rec.badge}">${rec.badgeText}</div><div style="flex:1;"><div class="call-text">${rec.text}</div><div class="call-meta">${rec.meta}</div><button class="weather-chip ${weather._fallback ? 'manual' : 'live'}" id="weatherInfo">${weather._fallback ? 'Wetter geschätzt' : 'Wetter live · Wewer'}</button>${stravaButton}</div></div></section>
+    <section class="section">${renderStravaCard()}</section>
     <section class="section">${renderRecoveryCard()}</section>
     <section class="section"><div class="card"><div class="card-title">Letzte Aktivitäten</div>${training.activities.map(renderActivity).join("")}</div></section>
     <section class="section"><div class="card"><div class="card-title">Recovery-Historie</div>${renderHistory()}</div></section>
@@ -405,6 +456,10 @@ function bindEvents() {
   if (elStravaConnect && stravaState.authUrl) elStravaConnect.addEventListener("click", () => { window.location.href = stravaState.authUrl; });
   const elStravaStatus = root.querySelector("#stravaStatus");
   if (elStravaStatus) elStravaStatus.addEventListener("click", () => showPopup(`<div class="pop-eyebrow">Strava</div><div class="pop-value" style="color:${stravaState.live ? "var(--green)" : "var(--amber)"};">${stravaState.label}</div><div class="pop-body">${escapeHtml(stravaState.detail)}</div>`, stravaState.live ? "var(--green)" : "var(--amber)"));
+  const elStravaOAuth = root.querySelector("#stravaOAuthBtn");
+  if (elStravaOAuth && stravaState.authUrl) elStravaOAuth.addEventListener("click", () => { window.location.href = stravaState.authUrl; });
+  const elStravaConfigSave = root.querySelector("#stravaConfigSave");
+  if (elStravaConfigSave) elStravaConfigSave.addEventListener("click", saveStravaConfig);
   const elExport = root.querySelector("#exportData");
   if (elExport) elExport.addEventListener("click", exportData);
   const elImport = root.querySelector("#importData");
