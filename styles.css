@@ -23,12 +23,12 @@ html, body {
 }
 
 body {
-  padding: 18px 14px 80px;
+  padding: 20px 16px 60px;
   max-width: 480px;
   margin: 0 auto;
   /* iOS safe area */
-  padding-top: calc(18px + env(safe-area-inset-top));
-  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  padding-top: calc(20px + env(safe-area-inset-top));
+  padding-bottom: calc(60px + env(safe-area-inset-bottom));
 }
 
 /* ---- Eyebrow / header ---- */
@@ -58,8 +58,8 @@ body {
   background: repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0px,rgba(255,255,255,.025) 1px,transparent 1px,transparent 3px),
               linear-gradient(155deg,#1a1d23,#101216);
   border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 22px 20px 18px;
+  border-radius: 20px;
+  padding: 22px 20px 20px;
   overflow: hidden;
 }
 .head-unit::before {
@@ -101,13 +101,13 @@ body {
 .spark { margin-top: 14px; height: 42px; width: 100%; display: block; }
 
 /* ---- Gauge row ---- */
-.gauge-row { display: flex; gap: 10px; margin-top: 16px; }
+.gauge-row { display: flex; gap: 10px; margin-top: 18px; }
 .gauge {
   flex: 1;
   background: var(--panel-2);
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 12px 12px 10px;
 }
 .gauge .v {
   font-family: 'JetBrains Mono', monospace;
@@ -121,12 +121,12 @@ body {
 .gauge .v.amber  { color: var(--amber);  }
 
 /* ---- Cards / Sections ---- */
-.section { margin-top: 20px; }
+.section { margin-top: 16px; }
 .card {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 18px;
 }
 .card-title {
   font-family: 'JetBrains Mono', monospace;
@@ -182,8 +182,8 @@ body {
 .activity {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 0;
+  gap: 12px;
+  padding: 11px 0;
   border-bottom: 1px solid var(--line);
 }
 .activity:last-child { border-bottom: none; }
@@ -528,7 +528,7 @@ body {
 /* ---- Footer ---- */
 footer {
   text-align: center;
-  margin-top: 26px;
+  margin-top: 32px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
   color: #4d5564;
