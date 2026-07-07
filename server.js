@@ -147,6 +147,18 @@ function activityLoad(activity) {
   return Math.max(1, distanceKm * 2 + minutes * 0.25);
 }
 
+function heartrateFromActivity(activity) {
+  // Strava liefert average_heartrate/max_heartrate nur, wenn has_heartrate true ist.
+  // Bei Opt-out oder fehlendem Sensor bleiben die Werte undefined.
+  if (activity.has_heartrate === false) return {};
+  const avg = Number(activity.average_heartrate);
+  const max = Number(activity.max_heartrate);
+  const out = {};
+  if (Number.isFinite(avg) && avg > 0) out.avg = Math.round(avg);
+  if (Number.isFinite(max) && max > 0) out.max = Math.round(max);
+  return out;
+}
+
 function computeFitnessTrend(dailyLoads) {
   // CTL/ATL mit exponentieller Glättung (Banister-Modell).
   // An Ruhetagen (load = 0) sinken Fitness und Fatigue sanft,
@@ -217,6 +229,7 @@ function buildStravaSnapshot(activities) {
         elevation_gain: Number(activity.total_elevation_gain) || 0,
         relative_effort: Number(activity.relative_effort) || undefined,
         total_calories: Number(activity.calories) || undefined,
+        heartrate: heartrateFromActivity(activity),
       },
     })),
     source: 'strava-live',
@@ -365,4 +378,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { computeFitnessTrend };
+module.exports = { computeFitnessTrend, buildStravaSnapshot };
