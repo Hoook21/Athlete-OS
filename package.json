@@ -6,6 +6,6 @@
   "scripts": {
     "start": "node server.js",
     "check": "node --check server.js && node --check storage.js && node --check app.js",
-    "test": "node scripts/test-fitness-trend.js"
+    "test": "node scripts/test-fitness-trend.js && node scripts/test-heartrate.js"
   }
 }

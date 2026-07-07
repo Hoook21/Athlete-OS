@@ -43,6 +43,7 @@ const ICONS = {
   bolt:     `<svg width="11" height="13" viewBox="0 0 11 13" fill="none" aria-hidden="true"><path d="M6.5 1L1.5 7.5h4L4 12.5 10 5.5H6L6.5 1z" fill="currentColor"/></svg>`,
   clock:    `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><circle cx="6.5" cy="6.5" r="5.2" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 4V6.5l1.8 1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   moon:     `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M6.5 1.5C4 1.5 1.5 4 1.5 6.5S4 11.5 6.5 11.5c2.2 0 4-1.4 4.7-3.3-2.5.7-5.2-.9-5.6-3.7A5 5 0 0 1 6.5 1.5z" fill="currentColor"/></svg>`,
+  heart:    `<svg width="13" height="12" viewBox="0 0 13 12" fill="none" aria-hidden="true"><path d="M6.5 10.5 1.5 5.5C-.5 3.5-.5 1.5 1.5.5s3 0 5 3c2-3 3-3 5-1s1.5 3-.5 5l-5 5z" fill="currentColor"/></svg>`,
   sun:      `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="2.1" fill="currentColor"/><path d="M6 1v1.1M6 9.9V11M1 6h1.1M9.9 6H11M2.6 2.6l.8.8M8.6 8.6l.8.8M9.4 2.6l-.8.8M3.4 8.6l-.8.8" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>`,
   cloud:    `<svg width="13" height="10" viewBox="0 0 13 10" fill="none" aria-hidden="true"><path d="M3.5 8.5a2.5 2.5 0 0 1 0-5A3.1 3.1 0 0 1 9.5 4a2.2 2.2 0 0 1-.5 4.5H3.5z" fill="currentColor"/></svg>`,
 };
@@ -330,9 +331,11 @@ function renderActivity(activity, idx) {
   const mins = Math.round((summary.moving_time || 0) / 60);
   const date = new Date(activity.start_local).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
   const load = Number.isFinite(summary.relative_effort) ? summary.relative_effort : Math.round(((summary.moving_time || 0) / 60) * 4);
+  const hr = summary.heartrate || {};
+  const hrText = hr.avg ? `${hr.avg} bpm${hr.max ? ` (max ${hr.max})` : ''}` : '';
   return `<div class="activity metric" data-activity="${idx}">
     <div class="chip" style="background: color-mix(in srgb, ${info.color} 18%, transparent); color: ${info.color}; border: 1px solid color-mix(in srgb, ${info.color} 45%, transparent);">${info.label}</div>
-    <div class="act-info"><div class="act-name">${escapeHtml(activity.name || info.label)}</div><div class="act-meta">${date} · ${km} km · ${mins} min</div></div>
+    <div class="act-info"><div class="act-name">${escapeHtml(activity.name || info.label)}</div><div class="act-meta">${date} · ${km} km · ${mins} min${hrText ? ` · ${ICONS.heart}${hrText}` : ''}</div></div>
     <div class="act-load">${load}<span class="l">LOAD</span></div>
   </div>`;
 }
@@ -369,6 +372,16 @@ function renderHistory() {
 }
 
 
+function weekHeartrateOverview() {
+  const hrActivities = (training.activities || []).filter((a) => {
+    const hr = (a.summary && a.summary.heartrate) || {};
+    return Number.isFinite(hr.avg) && hr.avg > 0;
+  });
+  if (!hrActivities.length) return '';
+  const avg = Math.round(hrActivities.reduce((sum, a) => sum + a.summary.heartrate.avg, 0) / hrActivities.length);
+  return `<div class="hr-overview"><span class="hr-icon">${ICONS.heart}</span><span>Ø HF letzte ${hrActivities.length} Einheit${hrActivities.length > 1 ? 'en' : ''}: <b>${avg} bpm</b></span></div>`;
+}
+
 function render() {
   const rec = buildRecommendation(training, weather);
   root.innerHTML = `
@@ -388,7 +401,7 @@ function render() {
     </div>
     <section class="section"><div class="card call-card"><div class="call-badge ${rec.badge}">${rec.badgeText}</div><div style="flex:1;"><div class="call-text">${rec.text}</div><div class="call-meta">${rec.meta}</div><button class="weather-chip ${weather._fallback ? 'manual' : 'live'}" id="weatherInfo">${weather._fallback ? ICONS.cloud : ICONS.sun}${weather._fallback ? 'Wetter geschätzt' : 'Wetter live · Wewer'}</button></div></div></section>
     <section class="section">${renderRecoveryCard()}</section>
-    <section class="section"><div class="card"><div class="card-title"><span class="card-title-icon">${ICONS.bolt}Letzte Aktivitäten</span></div>${training.activities.map(renderActivity).join("")}</div></section>
+    <section class="section"><div class="card"><div class="card-title"><span class="card-title-icon">${ICONS.bolt}Letzte Aktivitäten</span></div>${weekHeartrateOverview()}${training.activities.map(renderActivity).join("")}</div></section>
     <section class="section"><div class="card"><div class="card-title"><span class="card-title-icon">${ICONS.clock}Recovery-Historie</span></div>${renderHistory()}</div></section>
   `;
   bindEvents();
@@ -431,11 +444,14 @@ function openActivityPopup(activity) {
   const mins = Math.round((summary.moving_time || 0) / 60);
   const load = Number.isFinite(summary.relative_effort) ? summary.relative_effort : Math.round(((summary.moving_time || 0) / 60) * 4);
   const speed = mins ? Number(km) / (mins / 60) : 0;
+  const hr = summary.heartrate || {};
   const rows = [
     ["Distanz", `${km} km`],
     ["Dauer", `${mins} min`],
     ["Schnitt", `${speed.toFixed(1)} km/h`],
     Number.isFinite(summary.elevation_gain) ? ["Höhenmeter", `${Math.round(summary.elevation_gain)} m`] : null,
+    hr.avg ? ["Ø HF", `${hr.avg} bpm`] : null,
+    hr.max ? ["Max HF", `${hr.max} bpm`] : null,
     Number.isFinite(summary.total_calories) ? ["Kalorien", `${Math.round(summary.total_calories)} kcal`] : null,
   ].filter(Boolean);
   showPopup(`<div class="pop-eyebrow">${new Date(activity.start_local).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long" })}</div><div class="pop-value" style="color:${info.color};font-size:30px;line-height:1.05;">${escapeHtml(activity.name || info.label)}</div><div class="pop-status" style="color:${info.color};">${info.label} · Load ${load}</div><div class="stat-grid">${rows.map((row) => `<div class="stat-row"><span>${row[0]}</span><b>${row[1]}</b></div>`).join("")}</div><div class="pop-eyebrow" style="margin-top:18px;color:${info.color};">Coach-Analyse</div><div class="pop-body" style="margin-top:6px;">${buildActivityAnalysis(activity.sport_type, { km: Number(km), mins, speed, load, hasRE: Number.isFinite(summary.relative_effort), elev: summary.elevation_gain })}</div>`, info.color);

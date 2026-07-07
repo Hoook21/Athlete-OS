@@ -608,3 +608,20 @@ footer {
   color: var(--muted);
   letter-spacing: .08em;
 }
+
+/* ---- Heart rate overview ---- */
+.hr-overview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin: -4px 0 10px 0;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--red, #ff5a5a) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red, #ff5a5a) 20%, transparent);
+  border-radius: var(--radius-sm, 10px);
+}
+.hr-overview .hr-icon { color: var(--red, #ff5a5a); display: inline-flex; }
+.hr-overview b { color: var(--text); font-weight: 600; }
