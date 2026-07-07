@@ -147,6 +147,32 @@ function activityLoad(activity) {
   return Math.max(1, distanceKm * 2 + minutes * 0.25);
 }
 
+function computeFitnessTrend(dailyLoads) {
+  // CTL/ATL mit exponentieller Glättung (Banister-Modell).
+  // An Ruhetagen (load = 0) sinken Fitness und Fatigue sanft,
+  // anstatt am 42-Tage-Fenster hängen zu bleiben.
+  const CTL_TAU = 42;
+  const ATL_TAU = 7;
+  const ctlDecay = 1 - Math.exp(-1 / CTL_TAU);
+  const atlDecay = 1 - Math.exp(-1 / ATL_TAU);
+
+  let ctl = 0;
+  let atl = 0;
+  const ctlSeries = [];
+  for (const load of dailyLoads) {
+    ctl += (load - ctl) * ctlDecay;
+    atl += (load - atl) * atlDecay;
+    ctlSeries.push(ctl);
+  }
+
+  return {
+    fitness: Math.round(ctl),
+    fatigue: Math.round(atl),
+    form: Math.round(ctl - atl),
+    ctlSpark: ctlSeries.map((value) => Math.round(value * 10) / 10),
+  };
+}
+
 function buildStravaSnapshot(activities) {
   const now = Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
@@ -171,29 +197,15 @@ function buildStravaSnapshot(activities) {
     dailyLoads.push(loadsByDay.get(date) || 0);
   }
 
-  function rollingAverage(days) {
-    const slice = dailyLoads.slice(-days);
-    return slice.reduce((sum, value) => sum + value, 0) / days;
-  }
-
-  const ctlSeries = dailyLoads.map((_, index) => {
-    const start = Math.max(0, index - 41);
-    const slice = dailyLoads.slice(start, index + 1);
-    return slice.reduce((sum, value) => sum + value, 0) / 42;
-  });
-  const fitness = Math.round(rollingAverage(42));
-  const fatigue = Math.round(rollingAverage(7));
+  const trend = computeFitnessTrend(dailyLoads);
   const weekKm = week.reduce((sum, activity) => sum + (Number(activity.distance) || 0), 0) / 1000;
 
   return {
-    fitness,
-    fatigue,
-    form: fitness - fatigue,
+    ...trend,
     streak: 0,
     weekKm: Math.round(weekKm * 10) / 10,
     weekCount: week.length,
     sportLastSeen,
-    ctlSpark: ctlSeries.map((value) => Math.round(value * 10) / 10),
     activities: sorted.slice(0, 8).map((activity) => ({
       id: String(activity.id),
       name: activity.name || 'Strava Aktivitaet',
@@ -347,6 +359,10 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Fitness Coach  →  http://localhost:${PORT}/`);
-});
+if (require.main === module) {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Fitness Coach  →  http://localhost:${PORT}/`);
+  });
+}
+
+module.exports = { computeFitnessTrend };
