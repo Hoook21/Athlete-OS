@@ -68,6 +68,29 @@ function sportInfo(type) {
   return SPORT_MAP[type] || { label: (type || "SPORT").toUpperCase().slice(0, 9), color: "#8b93a1" };
 }
 
+
+function hasActivityHeartrate(summary) {
+  const hr = (summary && summary.heartrate) || {};
+  return Number.isFinite(hr.avg) && hr.avg > 0;
+}
+
+function fmtKm(summary) {
+  const hasHr = hasActivityHeartrate(summary);
+  const km = ((summary && summary.distance) || 0) / 1000;
+  return hasHr ? km.toFixed(1) : String(Math.round(km));
+}
+
+function fmtSpeed(summary) {
+  const hasHr = hasActivityHeartrate(summary);
+  const mins = Math.round(((summary && summary.moving_time) || 0) / 60);
+  const km = ((summary && summary.distance) || 0) / 1000;
+  const speed = mins ? km / (mins / 60) : 0;
+  return hasHr ? speed.toFixed(1) : String(Math.round(speed));
+}
+
+function fmtLoad(load) {
+  return String(Math.round(Number(load) || 0));
+}
 function sparkline(vals) {
   if (!vals || vals.length < 2) return "";
   const w = 440;
@@ -328,14 +351,15 @@ function buildRecommendation(metrics, forecast) {
 function renderActivity(activity, idx) {
   const info = sportInfo(activity.sport_type);
   const summary = activity.summary || {};
-  const km = ((summary.distance || 0) / 1000).toFixed(1);
+  const km = fmtKm(summary);
   const mins = Math.round((summary.moving_time || 0) / 60);
   const date = new Date(activity.start_local).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
-  const load = Number.isFinite(summary.load)
+  const rawLoad = Number.isFinite(summary.load)
     ? summary.load
     : Number.isFinite(summary.relative_effort)
       ? summary.relative_effort
       : Math.round(((summary.moving_time || 0) / 60) * 4);
+  const load = fmtLoad(rawLoad);
   const loadSourceLabel = summary.load_source === 'hr_zones'
     ? 'HF-Zonen'
     : summary.load_source === 'relative_effort'
@@ -454,13 +478,14 @@ function openActivityPopup(activity) {
   if (!activity) return;
   const info = sportInfo(activity.sport_type);
   const summary = activity.summary || {};
-  const km = ((summary.distance || 0) / 1000).toFixed(1);
+  const km = fmtKm(summary);
   const mins = Math.round((summary.moving_time || 0) / 60);
-  const load = Number.isFinite(summary.load)
+  const rawLoad = Number.isFinite(summary.load)
     ? summary.load
     : Number.isFinite(summary.relative_effort)
       ? summary.relative_effort
       : Math.round(((summary.moving_time || 0) / 60) * 4);
+  const load = fmtLoad(rawLoad);
   const loadSourceLabel = summary.load_source === 'hr_zones'
     ? 'HF-Zonen'
     : summary.load_source === 'relative_effort'
@@ -468,19 +493,19 @@ function openActivityPopup(activity) {
       : summary.load_source === 'estimate'
         ? 'Schätzung'
         : '';
-  const speed = mins ? Number(km) / (mins / 60) : 0;
+  const speed = fmtSpeed(summary);
   const hr = summary.heartrate || {};
   const rows = [
     ["Distanz", `${km} km`],
     ["Dauer", `${mins} min`],
-    ["Schnitt", `${speed.toFixed(1)} km/h`],
+    ["Schnitt", `${speed} km/h`],
     ["Load", `${load}${loadSourceLabel ? ` (${loadSourceLabel})` : ''}`],
     Number.isFinite(summary.elevation_gain) ? ["Höhenmeter", `${Math.round(summary.elevation_gain)} m`] : null,
     hr.avg ? ["Ø HF", `${hr.avg} bpm`] : null,
     hr.max ? ["Max HF", `${hr.max} bpm`] : null,
     Number.isFinite(summary.total_calories) ? ["Kalorien", `${Math.round(summary.total_calories)} kcal`] : null,
   ].filter(Boolean);
-  showPopup(`<div class="pop-eyebrow">${new Date(activity.start_local).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long" })}</div><div class="pop-value" style="color:${info.color};font-size:30px;line-height:1.05;">${escapeHtml(activity.name || info.label)}</div><div class="pop-status" style="color:${info.color};">${info.label} · Load ${load}</div><div class="stat-grid">${rows.map((row) => `<div class="stat-row"><span>${row[0]}</span><b>${row[1]}</b></div>`).join("")}</div><div class="pop-eyebrow" style="margin-top:18px;color:${info.color};">Coach-Analyse</div><div class="pop-body" style="margin-top:6px;">${buildActivityAnalysis(activity.sport_type, { km: Number(km), mins, speed, load, loadSource: summary.load_source, hasRE: Number.isFinite(summary.relative_effort), elev: summary.elevation_gain })}</div>`, info.color);
+  showPopup(`<div class="pop-eyebrow">${new Date(activity.start_local).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long" })}</div><div class="pop-value" style="color:${info.color};font-size:30px;line-height:1.05;">${escapeHtml(activity.name || info.label)}</div><div class="pop-status" style="color:${info.color};">${info.label} · Load ${load}</div><div class="stat-grid">${rows.map((row) => `<div class="stat-row"><span>${row[0]}</span><b>${row[1]}</b></div>`).join("")}</div><div class="pop-eyebrow" style="margin-top:18px;color:${info.color};">Coach-Analyse</div><div class="pop-body" style="margin-top:6px;">${buildActivityAnalysis(activity.sport_type, { km: Number(km), mins, speed: Number(speed), load: Number(load), hasHr: hasActivityHeartrate(summary), loadSource: summary.load_source, hasRE: Number.isFinite(summary.relative_effort), elev: summary.elevation_gain })}</div>`, info.color);
 }
 
 function buildActivityAnalysis(sport, data) {
@@ -490,10 +515,13 @@ function buildActivityAnalysis(sport, data) {
     : data.loadSource === 'estimate'
       ? 'Für diese Fahrt lag kein Strava-Effort oder keine HF vor, daher ist der Load geschätzt.'
       : '';
+  const hasHr = data.hasHr;
+  const kmDisplay = hasHr ? data.km.toFixed(1) : String(Math.round(data.km));
+  const speedDisplay = hasHr ? data.speed.toFixed(1) : String(Math.round(data.speed));
   if (sport === "Ride" && ref) {
     const distance = data.km >= ref.avg_km * 1.2 ? "klar über deinem Schnitt" : data.km <= ref.avg_km * 0.55 ? "eher kurz und locker" : "typisch für deine Ausfahrten";
     const load = data.load >= ref.avg_load * 1.4 ? "deutlich fordernd" : data.load <= ref.avg_load * 0.5 ? "niedrig und regenerativ" : "im normalen Bereich";
-    return `Mit <b>${data.km} km</b> war die Einheit ${distance}. Das Tempo lag bei <b>${data.speed.toFixed(1)} km/h</b>, der Load war <b>${load}</b>. ${sourceNote}`;
+    return `Mit <b>${kmDisplay} km</b> war die Einheit ${distance}. Das Tempo lag bei <b>${speedDisplay} km/h</b>, der Load war <b>${load}</b>. ${sourceNote}`;
   }
   if (sport === "StandUpPaddling") return `SUP ist ein guter Ausgleich: Rumpf, Gleichgewicht und aktive Erholung bei wenig Beinlast. Load <b>${data.load}</b> bestätigt die lockere Belastung. ${sourceNote}`;
   if (sport === "Walk") return `Lockerer Spaziergang: gut für Kreislauf und Regeneration, ohne deine Trainingslast stark zu erhöhen. ${sourceNote}`;
