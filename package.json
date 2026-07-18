@@ -5,7 +5,7 @@
   "description": "Lokale Fitness-Coach-PWA fuer iPhone/Safari",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check storage.js && node --check app.js && node --check scripts/test-fitness-trend.js && node --check scripts/test-heartrate.js && node --check scripts/test-hr-zones.js",
-    "test": "node scripts/test-fitness-trend.js && node scripts/test-heartrate.js && node scripts/test-hr-zones.js"
+    "check": "node --check server.js && node --check storage.js && node --check app.js && node --check scripts/test-fitness-trend.js && node --check scripts/test-heartrate.js && node --check scripts/test-hr-zones.js && node --check scripts/test-sleep.js",
+    "test": "node scripts/test-fitness-trend.js && node scripts/test-heartrate.js && node scripts/test-hr-zones.js && node scripts/test-sleep.js"
   }
 }

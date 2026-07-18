@@ -74,11 +74,141 @@ function readBody(req) {
     const chunks = [];
     req.on('data', chunk => chunks.push(chunk));
     req.on('end', () => {
-      try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
+      const text = Buffer.concat(chunks).toString('utf8');
+      if (!text.trim()) { resolve({}); return; }
+      const contentType = req.headers['content-type'] || '';
+      if (contentType.includes('application/x-www-form-urlencoded')) {
+        try {
+          const params = new URLSearchParams(text);
+          const obj = {};
+          for (const [key, value] of params) obj[key] = value;
+          resolve(obj);
+          return;
+        } catch { reject(new Error('Invalid form data')); return; }
+      }
+      try { resolve(JSON.parse(text)); }
       catch { reject(new Error('Invalid JSON')); }
     });
     req.on('error', reject);
   });
+}
+
+const SLEEP_KEY = 'latest-sleep';
+
+function readLatestSleep() {
+  const backup = readBackup();
+  const record = backup.records.find(r => r.k === SLEEP_KEY);
+  if (!record) return null;
+  try { return JSON.parse(record.v); } catch { return null; }
+}
+
+function writeLatestSleep(entry) {
+  const backup = readBackup();
+  const map = new Map(backup.records.map(r => [r.k, r.v]));
+  map.set(SLEEP_KEY, JSON.stringify(entry));
+  writeBackup({
+    app: 'fitness-coach',
+    version: backup.version || 1,
+    updatedAt: new Date().toISOString(),
+    records: [...map.entries()].map(([k, v]) => ({ k, v })),
+  });
+  return entry;
+}
+
+function normalizeSleep(input) {
+  const out = {
+    durationHours: undefined,
+    bedTime: undefined,
+    wakeTime: undefined,
+    quality: undefined,
+    heartRateAvg: undefined,
+    spo2Avg: undefined,
+    remMinutes: undefined,
+    deepMinutes: undefined,
+    lightMinutes: undefined,
+    awakeMinutes: undefined,
+    source: undefined,
+    updatedAt: new Date().toISOString(),
+  };
+
+  function pick(...keys) {
+    for (const key of keys) {
+      if (input[key] === undefined || input[key] === null || input[key] === '') continue;
+      return input[key];
+    }
+    return undefined;
+  }
+
+  const duration = pick('durationHours', 'duration', 'sleep', 'hours');
+  if (duration !== undefined) {
+    const parsed = Number(duration);
+    if (Number.isFinite(parsed)) out.durationHours = parsed;
+  }
+
+  const bed = pick('bedTime', 'bedtime', 'start', 'bedTimeISO', 'einschlafzeit');
+  if (bed) out.bedTime = String(bed);
+
+  const wake = pick('wakeTime', 'waketime', 'end', 'wakeTimeISO', 'aufwachzeit');
+  if (wake) out.wakeTime = String(wake);
+
+  if (out.bedTime && out.wakeTime && out.durationHours === undefined) {
+    const startMs = new Date(out.bedTime).getTime();
+    const endMs = new Date(out.wakeTime).getTime();
+    if (!Number.isNaN(startMs) && !Number.isNaN(endMs) && endMs > startMs) {
+      out.durationHours = (endMs - startMs) / (60 * 60 * 1000);
+    }
+  }
+
+  const quality = pick('quality', 'sleepQuality', 'score');
+  if (quality !== undefined) {
+    const parsed = Number(quality);
+    if (Number.isFinite(parsed)) out.quality = parsed;
+  }
+
+  const hr = pick('heartRateAvg', 'heartRate', 'hr', 'rhr', 'averageHeartRate');
+  if (hr !== undefined) {
+    const parsed = Number(hr);
+    if (Number.isFinite(parsed)) out.heartRateAvg = parsed;
+  }
+
+  const spo2 = pick('spo2Avg', 'spo2', 'bloodOxygen', 'averageSpo2');
+  if (spo2 !== undefined) {
+    const parsed = Number(spo2);
+    if (Number.isFinite(parsed)) out.spo2Avg = parsed;
+  }
+
+  const rem = pick('remMinutes', 'rem', 'remMin');
+  if (rem !== undefined) {
+    const parsed = Number(rem);
+    if (Number.isFinite(parsed)) out.remMinutes = parsed;
+  }
+
+  const deep = pick('deepMinutes', 'deep', 'deepMin', 'deepSleep');
+  if (deep !== undefined) {
+    const parsed = Number(deep);
+    if (Number.isFinite(parsed)) out.deepMinutes = parsed;
+  }
+
+  const light = pick('lightMinutes', 'light', 'lightMin', 'lightSleep');
+  if (light !== undefined) {
+    const parsed = Number(light);
+    if (Number.isFinite(parsed)) out.lightMinutes = parsed;
+  }
+
+  const awake = pick('awakeMinutes', 'awake', 'awakeMin', 'wakeupTime');
+  if (awake !== undefined) {
+    const parsed = Number(awake);
+    if (Number.isFinite(parsed)) out.awakeMinutes = parsed;
+  }
+
+  const source = pick('source', 'device', 'app');
+  if (source) out.source = String(source);
+
+  return out;
+}
+
+function validateSleep(entry) {
+  return Number.isFinite(entry.durationHours) || (entry.bedTime && entry.wakeTime);
 }
 
 function stravaConfigured() {
@@ -349,6 +479,30 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
+  if (pathname === '/api/sleep/latest') {
+    if (req.method === 'GET') {
+      const latest = readLatestSleep();
+      if (!latest) return jsonError(res, 404, 'No sleep measurement found');
+      return jsonOk(res, latest);
+    }
+
+    if (req.method === 'POST') {
+      let raw;
+      try { raw = await readBody(req); }
+      catch (err) { return jsonError(res, 400, err.message || 'Invalid body'); }
+
+      const entry = normalizeSleep(raw);
+      if (!validateSleep(entry)) {
+        return jsonError(res, 422, 'durationHours or bedTime+wakeTime required');
+      }
+
+      const saved = writeLatestSleep(entry);
+      return jsonOk(res, { ok: true, saved });
+    }
+
+    return jsonError(res, 405, 'Method Not Allowed');
+  }
+
   if (pathname === '/api/strava/status') {
     return jsonOk(res, stravaStatus(req));
   }
@@ -492,4 +646,8 @@ module.exports = {
   zoneIndexForHr,
   readAthleteZones,
   storeAthleteZones,
+  readLatestSleep,
+  writeLatestSleep,
+  normalizeSleep,
+  validateSleep,
 };
